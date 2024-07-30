@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .chat-container {
+            width: 400px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+        }
+
+        .message:nth-child(even) {
+            background-color: #f1f1f1;
+        }
+
+        .message:nth-child(odd) {
+            background-color: #e1e1e1;
+        }
+
+        input[type="text"] {
+            border: none;
+            padding: 10px;
+            flex: 1;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div id="chat-box" class="chat-box"></div>
+        <div style="display: flex;">
+            <input id="message-input" type="text" placeholder="Type a message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script>
+        
+        function requestNotificationPermission() {
+            if (Notification.permission === "default") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        console.log("Notification permission granted.");
+                    } else {
+                        console.log("Notification permission denied.");
+                        alert("Please enable notifications to receive chat updates.");
+                    }
+                });
+            } else if (Notification.permission === "denied") {
+                alert("Please enable notifications to receive chat updates.");
+            }
+        }
+
+        
+        requestNotificationPermission();
+        const ws = new WebSocket('ws://localhost:8080');
+
+       
+        function addMessageToChat(message) {
+            const chatBox = document.getElementById('chat-box');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.textContent = message;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; 
+        }
+        ws.onmessage = event => {
+            addMessageToChat(event.data);
+            if (document.visibilityState === 'hidden' && Notification.permission === 'granted') {
+                new Notification('New Message', {
+                    body: event.data,
+                    icon: 'https://via.placeholder.com/100' 
+                });
+            }
+        };
+        document.getElementById('send-button').addEventListener('click', () => {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            if (message) {
+                ws.send(message); 
+                addMessageToChat(message); 
+                messageInput.value = ''; 
+
+               
+                if (document.visibilityState === 'hidden' && Notification.permission === 'granted') {
+                    new Notification('Message Sent', {
+                        body: message,
+                        icon: 'https://via.placeholder.com/100' 
+                    });
+                }
+            }
+        });
+
+        document.getElementById('message-input').addEventListener('keypress', event => {
+            if (event.key === 'Enter') {
+                document.getElementById('send-button').click();
+            }
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+               
+            }
+        });
+    </script>
+</body>
+</html>
